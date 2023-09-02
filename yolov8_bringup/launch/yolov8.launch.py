@@ -25,11 +25,18 @@ def generate_launch_description():
     #
     # ARGS
     #
-    model = LaunchConfiguration("model")
-    model_cmd = DeclareLaunchArgument(
-        "model",
-        default_value="yolov8m.pt",
+    model_segment = LaunchConfiguration("model_segment")
+    model_segment_cmd = DeclareLaunchArgument(
+        "model_segment",
+        default_value="/ws/src/best.pt",
         description="Model name or path")
+
+    model_detect = LaunchConfiguration("model_detect")
+    model_detect_cmd = DeclareLaunchArgument(
+        "model_detect",
+        default_value="/ws/src/yolov8n.pt",
+        description="Model name or path")
+
 
     tracker = LaunchConfiguration("tracker")
     tracker_cmd = DeclareLaunchArgument(
@@ -70,48 +77,47 @@ def generate_launch_description():
     #
     # NODES
     #
-    detector_node_cmd = Node(
+    segment_node_cmd = Node(
         package="yolov8_ros",
         executable="yolov8_node",
-        name="yolov8_node",
-        namespace=namespace,
-        parameters=[{"model": model,
+        name="yolov8_segment",
+        namespace="yolo_segmentation",
+        parameters=[{"model": model_segment,
+                     "tracker": tracker,
                      "device": device,
                      "enable": enable,
                      "threshold": threshold}],
-        remappings=[("image_raw", input_image_topic)]
+        #remappings=[("/yolo/segment/annotated_img", "annotated_image")]
+    )
+    detect_node_cmd = Node(
+        package="yolov8_ros",
+        executable="yolov8_node",
+        name="yolov8_detection",
+        namespace="yolo_objects",
+        parameters=[{"model": model_detect,
+                     "tracker": tracker,
+                     "device": device,
+                     "enable": enable,
+                     "mode": "detect",
+                     "threshold": threshold}],
+                     
+        #remappings=[("/yolo/detect/annotated_img", "annotated_image")]
     )
 
-    tracking_node_cmd = Node(
-        package="yolov8_ros",
-        executable="tracking_node",
-        name="tracking_node",
-        namespace=namespace,
-        parameters=[{"tracker": tracker}],
-        remappings=[("image_raw", input_image_topic)]
-    )
 
-    debug_node_cmd = Node(
-        package="yolov8_ros",
-        executable="debug_node",
-        name="debug_node",
-        namespace=namespace,
-        remappings=[("image_raw", input_image_topic),
-                    ("detections", "tracking")]
-    )
+
 
     ld = LaunchDescription()
 
-    ld.add_action(model_cmd)
+    #ld.add_action(model_segment_cmd)
+    ld.add_action(model_detect_cmd)
+
     ld.add_action(tracker_cmd)
     ld.add_action(device_cmd)
     ld.add_action(enable_cmd)
     ld.add_action(threshold_cmd)
     ld.add_action(input_image_topic_cmd)
     ld.add_action(namespace_cmd)
-
-    ld.add_action(detector_node_cmd)
-    ld.add_action(tracking_node_cmd)
-    ld.add_action(debug_node_cmd)
-
+    ld.add_action(detect_node_cmd)
+    #ld.add_action(segment_node_cmd)
     return ld
