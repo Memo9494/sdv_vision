@@ -34,7 +34,7 @@ def generate_launch_description():
     model_detect = LaunchConfiguration("model_detect")
     model_detect_cmd = DeclareLaunchArgument(
         "model_detect",
-        default_value="/ws/src/yolov8n.pt",
+        default_value="/ws/src/RoadSeg/weights/best_object15.pt",
         description="Model name or path")
 
 

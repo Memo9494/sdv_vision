@@ -73,14 +73,22 @@ class localizationNode(rclpy.node.Node):
         self.get_logger().warn('test')
 
         self.object = {
-            "cat": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/cat.gltf",
-            "tree1": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/arbolito1.gltf",
-            "tree2": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/arbolito2.gltf",
-            "tree3": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/arbolito3.gltf",
-            "bench": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/banquita.gltf",
-            "person": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/human1.gltf",
-            "duck": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/patito.gltf"
+            "Pedestrian": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/human1.gltf",
+            "Duck": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/patito.gltf",
+            "Deer": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/deer.gltf",
+            "Bike": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/trash.gltf",
+            "RoadSign": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/trash.gltf",
+            "StopSign": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/trash.gltf",
         }
+        # self.object = {
+        #     "cat": "/3d_models/cat.gltf",
+        #     "tree1": "/3d_models/arbolito1.gltf",
+        #     "tree2": "/3d_models/arbolito2.gltf",
+        #     "tree3": "/3d_models/arbolito3.gltf",
+        #     "bench": "/3d_models/banquita.gltf",
+        #     "person": "/3d_models/human1.gltf",
+        #     "duck": "/3d_models/patito.gltf"
+        # }
         self.marker = Marker()
         self.marker.header.frame_id = "multisense/head"
         self.marker.header.stamp = self.get_clock().now().to_msg()
@@ -215,7 +223,7 @@ class localizationNode(rclpy.node.Node):
                         self.marker.pose.orientation.y = 0.0
                         self.marker.pose.orientation.z = 0.0
                         self.marker.pose.orientation.w = 1.0
-                        self.marker.lifetime = Duration(sec=1)
+                        self.marker.lifetime = Duration(sec=0.1)
 
                         self.marker_pub.publish(self.marker)
                     #self.posePublisher2.publish(point_x)

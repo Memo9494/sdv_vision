@@ -46,7 +46,7 @@ class Yolov8Node(Node):
         super().__init__("yolov8_node")
 
         # params
-        self.declare_parameter("model", "/ws/RoadSeg/weights/best150.pt")
+        self.declare_parameter("model", "/ws/src/RoadSeg/weights/best_object15.pt")
         model = self.get_parameter(
             "model").get_parameter_value().string_value
         self.get_logger().warn(f"model: {model}")
@@ -89,15 +89,27 @@ class Yolov8Node(Node):
         self.get_logger().warn('test2' )
         #timer_period = 0.1 #1 second
         #self.timer=self.create_timer(timer_period,self.timer_callback)
+        
+        #Prev list detection compare to a new one and publish if distance of sepration is enough
         self.object = {
-            "cat": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/cat.gltf",
-            "tree1": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/arbolito1.gltf",
-            "tree2": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/arbolito2.gltf",
-            "tree3": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/arbolito3.gltf",
-            "bench": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/banquita.gltf",
-            "person": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/human1.gltf",
-            "duck": "https://raw.githubusercontent.com/soyhorteconh/foxglove_test/main/3d_models/patito.gltf"
+            "Pedestrian": [[],[]],
+            "Duck": [[],[]],
+            "Deer": [[],[]],
+            "Bike": [[],[]],
+            "RoadSign": [[],[]],
+            "StopSign": [[],[]],
         }
+        # self.object = {
+        #     "cat": [[],[]],
+        #     "tree1": [[],[]],
+        #     "tree2": [[],[]],
+        #     "tree3": [[],[]],
+        #     "bench": [[],[]],
+        #     "person": [[],[]],
+        #     "duck": [[],[]],
+        # }
+        self.max_diff_x = 0.1
+        self.max_diff_y = 0.1
 
 
     def create_tracker(self, tracker_yaml) -> BaseTrack:
@@ -176,10 +188,12 @@ class Yolov8Node(Node):
                 # create detections msg
                 detections_msg = Detection2DArray()
                 detections_msg.header = msg.header
+                #Initialize empty new detection dictionary
+                for key, value  in self.object.items():
+                    self.object[key][1] = [] 
+ 
                 for result in results_list:
-                    result = result.cpu()
-
-                    
+                    result = result.cpu()          
                     for b in result.boxes:
                         label = self.yolo.names[int(b.cls)]
                         score = float(b.conf)
@@ -201,7 +215,8 @@ class Yolov8Node(Node):
                         detection_msg.position.y = float(box[1])
                         detection_msg.name.data = label
                         if label in self.object:
-                            self._pub.publish(detection_msg)
+                            self.object[label][1].append(detection_msg)
+                            #self._pub.publish(detection_msg)
                 # get track id
                         track_id = ""
                         if not b.id is None:
@@ -219,7 +234,34 @@ class Yolov8Node(Node):
                     #    self._pub.publish(detection_msg)
 
                     #self.get_logger().info(f'Number of detections: {len(detections_msg.detections)}')
+                
+                #Iterate new detections to erase the closer ones
+                for key, value in self.object.items():
+                    prev_detection = self.object[key][0]
+                    new_detection = self.object[key][1]
+                    if len(prev_detection) > 0  and len(new_detection) > 0 :
+                        #Compare lists, find the ones that are so close and pop those elements so it wont be published
+                        i = 0 
+                        while i < len(prev_detection) and i < len(new_detection):
+                            diff_x = abs(prev_detection[i].position.x-new_detection[i].position.x)
+                            #diff_y = abs(prev_detection[i].position.y-new_detection[i].position.y)
+                            if diff_x <= self.max_diff_x :#and diff_y <= self.max_diff_y :
+                                new_detection.pop(i)
+                            else: 
+                                i += 1
+                        #Keep previous detection to compare
+                        self.object[key][0] = new_detection
+                    else:
+                        self.object[key][0] = self.object[key][1]  
+                #Publish detections
+                for key, value in self.object.items():
+                    new_detection = self.object[key][1]
+                    if len(new_detection) > 0 :
+                        for ele in new_detection:
+                            self._pub.publish(ele)
 
+                     
+                    
             # Publish the modified image with the red circle
             self._dbg_pub.publish(self.cv_bridge.cv2_to_imgmsg(cv_image, encoding=msg.encoding))
             
